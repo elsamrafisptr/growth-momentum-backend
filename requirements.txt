@@ -1,0 +1,14 @@
+Flask-Migrate
+Flask-RESTful
+Flask-SQLAlchemy
+Flask
+SQLAlchemy
+Werkzeug
+alembic
+flasgger
+itsdangerous
+psycopg2
+pytz
+requests
+setproctitle
+six

@@ -1,0 +1,9 @@
+-r requirements.txt
+black
+flake8
+isort
+pip-upgrader
+pytest-cov
+pytest-sugar
+pytest
+safety
