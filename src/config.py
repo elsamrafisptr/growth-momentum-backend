@@ -24,6 +24,9 @@ class BaseConfig:
     
     SECRET_KEY = os.environ.get('SECRET_KEY')
     BCRYPT_LOG_ROUNDS = os.environ.get('BCRYPT_LOG_ROUNDS')
+
+    JWT_SECRET_KEY = os.getenv('JWT_SECRET_KEY', 'your_jwt_secret')
+    JWT_ACCESS_TOKEN_EXPIRES = 3600
     
     TOKEN_EXPIRATION_DAYS = 30
     TOKEN_EXPIRATION_SECONDS = 0

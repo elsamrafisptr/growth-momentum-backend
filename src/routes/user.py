@@ -6,7 +6,7 @@ from marshmallow import ValidationError
 from werkzeug.exceptions import NotFound
 from utils.decorators import authenticate
 from controllers.user import UserControllerService
-from schemas.user import UserUpdateSchema
+from schemas.user import UserSchema
 
 users = Blueprint("users", __name__)
 api = Api(users)
@@ -57,7 +57,7 @@ def update_user(user_id):
     try:
         user_data = request.get_json()
 
-        UserUpdateSchema().load(user_data)
+        UserSchema().load(user_data)
 
         result, status_code = UserControllerService.update_user(user_data, user_id)
         return jsonify(result), status_code
