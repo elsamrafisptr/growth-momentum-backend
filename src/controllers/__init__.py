@@ -1,1 +1,2 @@
-from .user import UserResource
+from .user import UserController
+from .course import CourseController

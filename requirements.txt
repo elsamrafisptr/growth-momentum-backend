@@ -12,3 +12,8 @@ pytz
 requests
 setproctitle
 six
+flask-accept
+flask-cors
+flask-bcrypt
+pyjwt
+flask-jwt-extended

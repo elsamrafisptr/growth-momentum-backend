@@ -1,8 +1,7 @@
-from flask_restful import Resource
-
-class UserController(Resource):
+class UserController():
     def get():
-        return ""
+        results = "Get All Users"
+        return results
     
     def post():
         return ""
