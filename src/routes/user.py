@@ -17,42 +17,32 @@ api = Api(users)
 # # @jwt_required() 
 def get_all_users():
     try:
-        page = request.args.get('page', 1, type=int)
-        per_page = request.args.get('per_page', 10, type=int)
         users = UserControllerService.get_all_users()
         
         if not users:
             return jsonify({"status": "success", "data": [], "message": "No users found"}), 200
-
-        paginated_users = users.paginate(page=page, per_page=per_page, error_out=False)
-        users_data = [user.to_dict() for user in paginated_users.items]
         
+        results = [user.serialize() for user in users]
+
         return jsonify({
             "status": "success",
-            "data": {
-                "users": users_data,
-                "page": paginated_users.page,
-                "total_pages": paginated_users.pages
-            }
+            "data": results
         }), 200
 
     except Exception as ex:
         return jsonify({"status": "error", "message": f"Failed to fetch users: {ex}"}), 500
 
 @users.route('/users/<int:user_id>', methods=['GET'])
-@accept('application/json')
-@authenticate
-@jwt_required()  
+# @accept('application/json')
+# @authenticate
+# @jwt_required()  
 def get_single_user(user_id):
     try:
         user = UserControllerService.get_user(user_id)
         if not user:
             raise NotFound(f"User with ID {user_id} not found.")
 
-        return jsonify({
-            "status": "success",
-            "data": user.to_dict()
-        }), 200
+        return jsonify(user), 200
 
     except NotFound as e:
         return jsonify({"status": "error", "message": str(e)}), 404

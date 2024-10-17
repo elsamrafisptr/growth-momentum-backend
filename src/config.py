@@ -1,5 +1,8 @@
 import os
 import logging
+from dotenv import load_dotenv
+
+load_dotenv()
 
 class BaseConfig:
     """Base configuration"""
@@ -9,9 +12,9 @@ class BaseConfig:
     PORT = os.environ.get('APPLICATION_PORT', '5000')
     TESTING = False
 
-    MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
-    MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', '')
-    MYSQL_DB = os.environ.get('MYSQL_DB')
+    # MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
+    # MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', '')
+    # MYSQL_DB = os.environ.get('MYSQL_DB')
 
     LOGGING_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     LOGGING_LOCATION = 'logs'
@@ -38,7 +41,7 @@ class TestingConfig(BaseConfig):
     """Testing configuration"""
     DEBUG = True
     TESTING = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_TEST_URL')
+    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_TEST_URL') or 'sqlite:///default.db'
     
     TOKEN_EXPIRATION_DAYS = 0
     TOKEN_EXPIRATION_SECONDS = 3

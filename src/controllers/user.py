@@ -24,7 +24,7 @@ class UserControllerService:
             result = User.query.get(user_id)
             if not result:
                 logger.warning(f"User with ID {user_id} not found.")
-            return result
+            return result.serialize()
         except Exception as ex:
             logger.error(f"Error fetching user {user_id}: {ex}")
             return None

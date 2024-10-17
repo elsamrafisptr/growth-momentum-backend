@@ -20,22 +20,19 @@ class AuthControllerService:
                 logger.warning(f"Registration failed. Email {user_data['email']} is already in use.")
                 return {"message": "Email is already registered."}, 400
 
-            hashed_password = bcrypt.generate_password_hash(
-                user_data["password"], 
-                int(os.environ.get('BCRYPT_LOG_ROUNDS', 12))
-            ).decode('utf-8')
+            # hashed_password = bcrypt.generate_password_hash(user_data["password"], '13')
 
             new_user = User(
                 username=user_data["username"],
                 email=user_data["email"],
-                password=hashed_password,
-                roles=UserRole.USER.value
+                password=user_data["password"],
+                roles=user_data["roles"]
             )
             db.session.add(new_user)
             db.session.commit()
 
             logger.info(f"User {user_data['email']} registered successfully.")
-            return {"message": "User registered successfully."}, 201
+            return new_user, 201
 
         except Exception as ex:
             db.session.rollback()
