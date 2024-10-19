@@ -17,3 +17,6 @@ flask-cors
 flask-bcrypt
 pyjwt
 flask-jwt-extended
+flask-limiter
+flask-mysqldb
+python-dotenv
