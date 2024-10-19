@@ -2,9 +2,8 @@ import os
 import uuid
 import json
 from extensions import db, bcrypt
-from enum import Enum, IntFlag
+from enum import Enum
 from datetime import datetime
-
 
 class UserRole(Enum):
     USER = "Guest"
@@ -14,7 +13,6 @@ class User(db.Model):
     __tablename__ = 'users'
     
     id = db.Column(db.String(128), primary_key=True, default=lambda: str(uuid.uuid4()), nullable=False)
-    
     username = db.Column(db.String(255), nullable=False, index=True)
     email = db.Column(db.String(128), unique=True, nullable=False, index=True)
     roles = db.Column(db.Enum(UserRole), nullable=False)
@@ -23,27 +21,31 @@ class User(db.Model):
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
     updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now(), onupdate=datetime.now())
 
-    profile = db.relationship('Profile', uselist=False, backref='user', cascade="all, delete-orphan", lazy=True)
+    profile = db.relationship('Profile', uselist=False, backref='user', cascade="all, delete-orphan", lazy='joined')
 
     def __init__(self, username: str, email: str, roles: UserRole = UserRole.USER, password: str = None):
         self.username = username
         self.email = email
-        self.roles = roles.value
+        self.roles = roles
         if password:
-            hashed_password = bcrypt.generate_password_hash(password, rounds=int(os.environ.get('BCRYPT_LOG_ROUNDS', 12)))
-            self.password = hashed_password
-        self.created_at = datetime.now()
-        self.updated_at = datetime.now()
+            self.set_password(password)
+    
+    def set_password(self, password: str):
+        self.password = bcrypt.generate_password_hash(password, rounds=int(os.environ.get('BCRYPT_LOG_ROUNDS', 12))).decode('utf-8')
+
+    def check_password(self, password: str):
+        return bcrypt.check_password_hash(self.password, password)
 
     def serialize(self):
         return {
             'username': self.username,
             'email': self.email,
-            'roles': self.roles
+            'roles': self.roles.value
         }
 
     def __repr__(self):
         return f'<User {self.email}>'
+
 
 class JobType(Enum):
     STUDENT = "Student"
@@ -93,3 +95,4 @@ class Profile(db.Model):
 
     def __repr__(self):
         return f'<Profile {self.user_id}>'
+

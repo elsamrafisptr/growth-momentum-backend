@@ -3,6 +3,7 @@ from flasgger import Swagger
 from config import DevelopmentConfig, ProductionConfig
 from extensions import db, migrate, jwt, bcrypt
 from routes import users, auth
+# from models.token import TokenBlacklist
 
 def create_app(config_class=DevelopmentConfig):
     server =Flask(__name__)
@@ -15,6 +16,12 @@ def create_app(config_class=DevelopmentConfig):
     migrate.init_app(server, db)
     jwt.init_app(server)
     bcrypt.init_app(server)
+
+    # @jwt.token_in_blocklist_loader
+    # def check_if_token_in_blacklist(jwt_header, jwt_payload):
+    #     jti = jwt_payload["jti"]
+    #     token = TokenBlacklist.query.filter_by(jti=jti).first()
+    #     return token is not None
 
     server.config['SWAGGER'] = {
         'swagger_version': '2.0',

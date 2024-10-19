@@ -6,15 +6,15 @@ from marshmallow import ValidationError
 from werkzeug.exceptions import NotFound
 from utils.decorators import authenticate
 from controllers.user import UserControllerService
-from schemas.user import UserUpdateSchema
+from schemas.user import UserSchema
 
 users = Blueprint("users", __name__)
 api = Api(users)
 
 @users.route('/users', methods=['GET'])
-# @accept('application/json')
-# # @authenticate
-# # @jwt_required() 
+@accept('application/json')
+@authenticate
+@jwt_required() 
 def get_all_users():
     try:
         users = UserControllerService.get_all_users()
@@ -33,9 +33,9 @@ def get_all_users():
         return jsonify({"status": "error", "message": f"Failed to fetch users: {ex}"}), 500
 
 @users.route('/users/<int:user_id>', methods=['GET'])
-# @accept('application/json')
-# @authenticate
-# @jwt_required()  
+@accept('application/json')
+@authenticate
+@jwt_required()  
 def get_single_user(user_id):
     try:
         user = UserControllerService.get_user(user_id)
@@ -57,7 +57,7 @@ def update_user(user_id):
     try:
         user_data = request.get_json()
 
-        UserUpdateSchema().load(user_data)
+        UserSchema().load(user_data)
 
         result, status_code = UserControllerService.update_user(user_data, user_id)
         return jsonify(result), status_code
