@@ -2,10 +2,10 @@ import logging
 import os
 from flask_jwt_extended import (
     create_access_token, 
-    create_refresh_token, 
+    create_refresh_token,
+    get_jwt, 
     jwt_required, 
     get_jwt_identity, 
-    get_jti
 )
 from extensions import db, bcrypt
 from models.user import User, UserRole
@@ -22,30 +22,33 @@ class AuthControllerService:
                 logger.warning(f"Registration failed. Email {user_data['email']} is already in use.")
                 return {"message": "Email is already registered."}, 400
 
+            rounds = int(os.getenv("BCRYPT_ROUNDS", 12)) 
+            hashed_password = bcrypt.generate_password_hash(user_data["password"], rounds).decode('utf-8')
+
             new_user = User(
                 username=user_data["username"],
                 email=user_data["email"],
-                password=user_data["password"], 
+                password=hashed_password, 
                 roles=UserRole.USER,
-                
             )
+
             db.session.add(new_user)
             db.session.commit()
 
             logger.info(f"User {user_data['email']} registered successfully.")
-            return new_user, 201
+            return {"message": "User registered successfully."}, 201
 
         except Exception as ex:
             db.session.rollback()
             logger.error(f"Error during registration: {ex}")
             return {"message": "Internal server error"}, 500
-
+        
     @staticmethod
     def login(user_data):
         try:
             user = User.query.filter_by(email=user_data["email"]).first()
 
-            if not user or not user.check_password(user_data["password"]):
+            if not user and not user.check_password(user_data["password"]):
                 logger.warning(f"Login failed. Invalid credentials for email {user_data['email']}.")
                 return {"message": "Invalid credentials."}, 401
 
@@ -64,8 +67,14 @@ class AuthControllerService:
 
     @staticmethod
     def create_tokens(identity):
-        access_token = create_access_token(identity=identity, expires_delta=timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", 15))))
-        refresh_token = create_refresh_token(identity=identity, expires_delta=timedelta(days=int(os.getenv("REFRESH_TOKEN_EXPIRES_IN", 7))))
+        access_token = create_access_token(
+            identity=identity, 
+            expires_delta=timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", 15)))
+        )
+        refresh_token = create_refresh_token(
+            identity=identity, 
+            expires_delta=timedelta(days=int(os.getenv("REFRESH_TOKEN_EXPIRES_IN", 7)))
+        )
         return access_token, refresh_token
 
     @staticmethod
@@ -74,7 +83,10 @@ class AuthControllerService:
         try:
             user_id = get_jwt_identity()
 
-            new_access_token = create_access_token(identity=user_id, expires_delta=timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", 15))))
+            new_access_token = create_access_token(
+                identity=user_id, 
+                expires_delta=timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", 15)))
+            )
 
             logger.info(f"Access token refreshed for user ID {user_id}.")
             return {"access_token": new_access_token}, 200
@@ -87,7 +99,7 @@ class AuthControllerService:
     @jwt_required()
     def logout():
         try:
-            jti = get_jti(get_jwt_identity())
+            jti = get_jwt()['jti']
             add_token_to_blacklist(jti)
 
             logger.info("User logged out successfully.")

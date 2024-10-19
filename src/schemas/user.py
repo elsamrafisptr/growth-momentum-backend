@@ -12,6 +12,5 @@ class UserRegisterSchema(Schema):
     updated_at = fields.DateTime(required=True)
 
 class UserLoginSchema(Schema):
-    access_token = fields.Str()
-    refresh_token = fields.Str()
-    user = fields.Nested(UserSchema)
+    email = fields.Str(required=True)
+    password = fields.Str(required=True)
