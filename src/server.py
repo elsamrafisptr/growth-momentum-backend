@@ -1,21 +1,20 @@
 from flask import Flask
 from flasgger import Swagger
 from config import DevelopmentConfig, ProductionConfig
-from extensions import db, migrate, jwt, bcrypt
-from routes import users, auth
+from extensions import db, migrate, jwt, bcrypt, cors
+from routes import users, auth, profile
 # from models.token import TokenBlacklist
 
 def create_app(config_class=DevelopmentConfig):
     server =Flask(__name__)
 
     server.config.from_object(config_class)
-    # server.config["SQLALCHEMY_DATABASE_URI"] = config_class.SQLALCHEMY_DATABASE_URI
-    # server.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = config_class.SQLALCHEMY_TRACK_MODIFICATIONS
 
     db.init_app(server)
     migrate.init_app(server, db)
     jwt.init_app(server)
     bcrypt.init_app(server)
+    cors.init_app(server)
 
     # @jwt.token_in_blocklist_loader
     # def check_if_token_in_blacklist(jwt_header, jwt_payload):
@@ -43,6 +42,7 @@ def create_app(config_class=DevelopmentConfig):
     api_prefix = '/api/v1'
     server.register_blueprint(users, url_prefix=api_prefix)
     server.register_blueprint(auth, url_prefix=api_prefix)
+    server.register_blueprint(profile, url_prefix=api_prefix)
     @server.route('/', methods=['GET'])
     def index():
         return 'Hello, Welcome to the Growth Momentum API'

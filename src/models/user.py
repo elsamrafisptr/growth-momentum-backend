@@ -90,7 +90,7 @@ class Profile(db.Model):
             'job_name': self.job_name,
             'activity_level': self.activity_level.value,
             'gender': self.gender.value,
-            'preferences': json.loads(self.preferences) if self.preferences else None
+            'preferences': self.preferences
         }
 
     def __repr__(self):
