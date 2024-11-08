@@ -4,7 +4,6 @@ from flask_accept import accept
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 from werkzeug.exceptions import NotFound
-from utils.decorators import authenticate
 from controllers.user import UserControllerService
 from schemas.user import UserSchema
 
@@ -12,8 +11,7 @@ users = Blueprint("users", __name__)
 api = Api(users)
 
 @users.route('/users', methods=['GET'])
-@accept('application/json')
-@authenticate
+# @accept('application/json')
 @jwt_required() 
 def get_all_users():
     try:
@@ -32,10 +30,9 @@ def get_all_users():
     except Exception as ex:
         return jsonify({"status": "error", "message": f"Failed to fetch users: {ex}"}), 500
 
-@users.route('/users/<int:user_id>', methods=['GET'])
-@accept('application/json')
-@authenticate
-@jwt_required()  
+@users.route('/users/<string:user_id>', methods=['GET'])
+# @accept('application/json')
+# @jwt_required()  
 def get_single_user(user_id):
     try:
         user = UserControllerService.get_user(user_id)
@@ -51,7 +48,6 @@ def get_single_user(user_id):
 
 @users.route('/users/<int:user_id>', methods=['PUT'])
 @accept('application/json')
-@authenticate
 @jwt_required()
 def update_user(user_id):
     try:
@@ -69,7 +65,6 @@ def update_user(user_id):
 
 @users.route('/users/<int:user_id>', methods=['DELETE'])
 @accept('application/json')
-@authenticate
 @jwt_required()
 def delete_user(user_id):
     try:

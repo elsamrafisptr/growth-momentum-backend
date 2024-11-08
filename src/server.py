@@ -14,7 +14,7 @@ def create_app(config_class=DevelopmentConfig):
     migrate.init_app(server, db)
     jwt.init_app(server)
     bcrypt.init_app(server)
-    cors.init_app(server)
+    cors.init_app(server, supports_credentials=True, origins=["http://localhost:3000"])
 
     # @jwt.token_in_blocklist_loader
     # def check_if_token_in_blacklist(jwt_header, jwt_payload):

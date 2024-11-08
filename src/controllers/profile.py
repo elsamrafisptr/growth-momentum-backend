@@ -88,7 +88,7 @@ class ProfileControllerService:
             return {"message": "Internal server error"}, 500
         
     @staticmethod
-    @jwt_required()
+    # @jwt_required()
     def get_user_detail_data():
         try:
             user_id = get_jwt_identity()

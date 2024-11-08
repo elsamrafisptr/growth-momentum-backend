@@ -11,6 +11,7 @@ from extensions import db, bcrypt
 from models.user import User, UserRole
 from utils.services.token_service import add_token_to_blacklist
 from datetime import timedelta
+from flask import make_response
 
 logger = logging.getLogger(__name__)
 
@@ -54,22 +55,32 @@ class AuthControllerService:
 
             access_token, refresh_token = AuthControllerService.create_tokens(user.id)
 
+            response = make_response({"user": user.serialize(), "token": access_token})
+
+            response.set_cookie(
+                "access_token", access_token,
+                httponly=True, secure=True, samesite="None",
+                max_age=60*120
+            )
+
+            response.set_cookie(
+                "refresh_token", refresh_token,
+                httponly=True, secure=True, samesite="None",
+                max_age=60*60*24*7
+            )
+
             logger.info(f"User {user.email} logged in successfully.")
-            return {
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-                "user": user.serialize()
-            }, 200
+            return response, 200
 
         except Exception as ex:
             logger.error(f"Error during login: {ex}")
-            return {"message": "Internal server error"}, 500
+            return {"message": "Internal server error from controller"}, 500
 
     @staticmethod
     def create_tokens(identity):
         access_token = create_access_token(
             identity=identity, 
-            expires_delta=timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", 15)))
+            expires_delta=timedelta(hours=int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", 2)))
         )
         refresh_token = create_refresh_token(
             identity=identity, 
@@ -85,11 +96,19 @@ class AuthControllerService:
 
             new_access_token = create_access_token(
                 identity=user_id, 
-                expires_delta=timedelta(minutes=int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", 15)))
+                expires_delta=timedelta(hours=int(os.getenv("ACCESS_TOKEN_EXPIRES_IN", 2)))
+            )
+
+            response = make_response({"message": "Token refreshed successfully."})
+            
+            response.set_cookie(
+                "access_token", new_access_token, 
+                httponly=True, secure=True, samesite="None",
+                max_age=60*120
             )
 
             logger.info(f"Access token refreshed for user ID {user_id}.")
-            return {"access_token": new_access_token}, 200
+            return response, 200
 
         except Exception as ex:
             logger.error(f"Error during token refresh: {ex}")
@@ -100,10 +119,17 @@ class AuthControllerService:
     def logout():
         try:
             jti = get_jwt()['jti']
+            logger.info(f"Attempting to log out token with JTI: {jti}")
             add_token_to_blacklist(jti)
+            exp = get_jwt()['exp']  # Get the expiration timestamp
+            print(f"Token expires at: {exp}")
+
+            response = make_response({"message": "Logout successful."})
+            response.set_cookie("access_token", "", expires=0)
+            response.set_cookie("refresh_token", "", expires=0)
 
             logger.info("User logged out successfully.")
-            return {"message": "Logout successful."}, 200
+            return response, 200
 
         except Exception as ex:
             logger.error(f"Error during logout: {ex}")
