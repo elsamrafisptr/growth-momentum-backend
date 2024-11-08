@@ -12,3 +12,11 @@ pytz
 requests
 setproctitle
 six
+flask-accept
+flask-cors
+flask-bcrypt
+pyjwt
+flask-jwt-extended
+flask-limiter
+flask-mysqldb
+python-dotenv
