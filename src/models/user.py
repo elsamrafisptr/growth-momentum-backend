@@ -1,6 +1,5 @@
 import os
 import uuid
-import json
 from extensions import db, bcrypt
 from enum import Enum
 from datetime import datetime

@@ -9,7 +9,7 @@ from flask_jwt_extended import (
 )
 from extensions import db, bcrypt
 from models.user import User, UserRole
-from utils.services.token_service import add_token_to_blacklist
+# from utils.services.token_service import add_token_to_blacklist
 from datetime import timedelta
 from flask import make_response
 
@@ -120,7 +120,7 @@ class AuthControllerService:
         try:
             jti = get_jwt()['jti']
             logger.info(f"Attempting to log out token with JTI: {jti}")
-            add_token_to_blacklist(jti)
+            # add_token_to_blacklist(jti)
             exp = get_jwt()['exp']  # Get the expiration timestamp
             print(f"Token expires at: {exp}")
 

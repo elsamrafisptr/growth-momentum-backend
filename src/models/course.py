@@ -1,4 +1,3 @@
-import os
 import uuid
 from flask import json
 from extensions import db
