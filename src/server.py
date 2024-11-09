@@ -2,7 +2,7 @@ from flask import Flask
 from flasgger import Swagger
 from config import DevelopmentConfig, ProductionConfig
 from extensions import db, migrate, jwt, bcrypt, cors
-from routes import users, auth, profile
+from routes import users, auth, profile, course
 
 def create_app(config_class=DevelopmentConfig):
     server =Flask(__name__)
@@ -36,6 +36,7 @@ def create_app(config_class=DevelopmentConfig):
     server.register_blueprint(users, url_prefix=api_prefix)
     server.register_blueprint(auth, url_prefix=api_prefix)
     server.register_blueprint(profile, url_prefix=api_prefix)
+    server.register_blueprint(course, url_prefix=api_prefix)
 
     @server.route('/', methods=['GET'])
     def index():
