@@ -5,6 +5,7 @@ import pandas as pd
 from sqlalchemy import Table, or_
 from models.course import Course, Recommendation
 from extensions import db
+from flask import request
 from sklearn.metrics.pairwise import cosine_similarity 
 
 logger = logging.getLogger(__name__)
@@ -13,9 +14,12 @@ class CourseController(Resource):
     @staticmethod
     def get_all_courses():
         try:
+            page = request.args.get('page', 1, type=int)
+            limit = request.args.get('limit', 20, type=int)
+
             course_table = Table('course', db.metadata, autoload_with=db.engine)
             
-            query = db.session.query(course_table)
+            query = db.session.query(course_table).offset((page - 1) * limit).limit(limit)
             results = query.all()
 
             courses = []
@@ -40,6 +44,31 @@ class CourseController(Resource):
         except Exception as ex:
             logger.error(f"Error fetching course {course_id}: {ex}")
             return {'message': 'Error fetching course'}, 500
+
+    @staticmethod
+    def get_all_preferences():
+        try:
+            course_table = Table('course', db.metadata, autoload_with=db.engine)
+
+            categories = db.session.query(course_table.c.Category).distinct().all()
+            subcategories = db.session.query(course_table.c["Sub-Category"]).distinct().all()
+
+            preferences = set(category[0] for category in categories) | set(subcategory[0] for subcategory in subcategories)
+
+            unique_preferences = sorted(preferences)
+
+            return unique_preferences
+
+        except Exception as ex:
+            logger.error(f"Error retrieving preferences: {ex}")
+            return {"status": "error", "message": f"Error retrieving preferences: {ex}"}, 500
+
+    @staticmethod
+    def get_most_favourites():
+        try: 
+            return
+        except:
+            return
 
     @staticmethod
     def generate_skill_vector(recommendations):
@@ -162,7 +191,8 @@ class CourseController(Resource):
                 else:
                     print("Threshold not met, regenerating:", "ILD:", ild, "MSI:", msi)
 
-            return recommendations, ild, msi
+            recommendations_data = db.session.query(course_table).filter(course_table.c.Title.in_(recommendations))
+            return list(set(recommendations_data)), ild, msi
 
         except Exception as ex:
             logger.error(f"Error generating recommendations: {ex}")
