@@ -1,22 +1,15 @@
-import pandas as pd
-import numpy as np
-from flask import Blueprint, json, jsonify, request, current_app
+from flask import Blueprint, jsonify, current_app
 from flask_restful import Api
 from flask_accept import accept
 from flask_jwt_extended import jwt_required
-from marshmallow import ValidationError
-from werkzeug.exceptions import NotFound
 from controllers.course import CourseController
 from controllers.profile import ProfileControllerService
 from models.course import Course, Recommendation
-from extensions import db
 
 courses = Blueprint("courses", __name__)
 
 @courses.route('/recommendations', methods=['GET'])
 def generate_recommendations_route():
-    ild_threshold = 60.0
-    msi_threshold = 60.0
     try:
         # user_data = ProfileControllerService.get_user_detail_data()
         user_data = ['Cloud Computing', 'Data Science', 'AI', 'Software Development']
@@ -24,14 +17,14 @@ def generate_recommendations_route():
         if not user_data:
             raise ValueError("User profile data could not be retrieved.")
         
-        recommendations = CourseController.generate_recommendations(user_data)
+        recommendations, ild, msi = CourseController.generate_recommendations(user_data)
         if not recommendations:
             raise ValueError("No recommendations generated.", recommendations)
 
         return jsonify({
             'recommendations': recommendations,
-            'ild': 60.0,
-            'msi': 60.0
+            'ild': ild,
+            'msi': msi,
         }), 200
 
     except ValueError as value_error:

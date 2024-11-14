@@ -2,12 +2,10 @@ from flask_restful import Resource
 import logging
 import numpy as np
 import pandas as pd
-from sqlalchemy import Table, asc, or_, and_
+from sqlalchemy import Table, or_
 from models.course import Course, Recommendation
 from extensions import db
 from sklearn.metrics.pairwise import cosine_similarity 
-import os
-from sqlalchemy.exc import SQLAlchemyError
 
 logger = logging.getLogger(__name__)
 
@@ -44,46 +42,85 @@ class CourseController(Resource):
             return {'message': 'Error fetching course'}, 500
 
     @staticmethod
-    def generate_skill_vector(preferences, unique_skills):
-        skill_vector = np.zeros(len(unique_skills), dtype=int)
-        preference_list = preferences.split(', ')
-        for idx, skill in enumerate(unique_skills):
-            if skill in preference_list:
-                skill_vector[idx] = 1
-        return skill_vector
+    def generate_skill_vector(recommendations):
+        try:
+            course_table = Table('course', db.metadata, autoload_with=db.engine)
+            
+            query = db.session.query(course_table.c.Title, course_table.c.skill_vector)
+            skill_data = query.filter(course_table.c.Title.in_(recommendations)).all()
+            
+            unique_skill_data = {title: skill_vector for title, skill_vector in skill_data}
+
+            skill_vectors = []
+            for title in recommendations:
+                skill_vector_str = unique_skill_data.get(title)
+                if skill_vector_str:
+                    skill_vector_list = list(map(int, skill_vector_str.strip('[]').split()))
+                    skill_vectors.append(skill_vector_list)
+
+            skill_vectors_array = np.array(skill_vectors, dtype=int)
+
+            return skill_vectors_array
+            
+        except Exception as ex:
+            logger.error(f"Error generating skill vectors: {ex}")
+            return {"status": "error", "message": f"Error generating skill vectors: {ex}"}, 500
+
+    @staticmethod
+    def generate_popularity(recommendations):
+        try:
+            course_table = Table('course', db.metadata, autoload_with=db.engine)
+            
+            query = db.session.query(course_table.c.Title, course_table.c.popularity)
+            popularity_data = query.filter(course_table.c.Title.in_(recommendations)).all()
+            
+            popularity_dict = {title: popularity for title, popularity in popularity_data}
+            
+            return [popularity_dict.get(title, 0) for title in recommendations]
+
+        except Exception as ex:
+            logger.error(f"Error generating popularity: {ex}")
+            return {"status": "error", "message": f"Error generating popularity: {ex}"}, 500
 
     @staticmethod
     def calculate_ild(vectors):
         n_items = vectors.shape[0]
         if n_items < 2:
-            return 0.0
+            return 0.0  
+
         similarity_matrix = cosine_similarity(vectors)
         dissimilarity_matrix = 1 - similarity_matrix
-        triu_indices = np.triu_indices(similarity_matrix.shape[0], k=1)
+
+        triu_indices = np.triu_indices(n_items, k=1) 
         pairwise_dissimilarities = dissimilarity_matrix[triu_indices]
-        ild = np.sum(pairwise_dissimilarities) / (n_items * (n_items - 1) / 2)
+        ild = np.mean(pairwise_dissimilarities)  
+
         return ild
 
     @staticmethod
     def calculate_msi(predicted, pop):
         mean_self_information = []
-        k = 0
+        k = 0 
         pop_len = len(pop)
+
         for sublist in predicted:
             self_information = 0
-            k += 1
             for i in range(len(sublist)):
-                if sublist[i] == 1:
-                    if i < pop_len:
-                        self_information += np.sum(-np.log2(pop[i] / 1)) 
-            mean_self_information.append(self_information / 20)
-        novelty = sum(mean_self_information) / k
-        return novelty
+                if sublist[i] == 1 and i < pop_len:
+                    self_information += np.sum(-np.log2(pop[i]))
+                    k += 1
 
+            mean_self_information.append(self_information / pop_len if pop_len > 0 else 0)
+
+        novelty = sum(mean_self_information) / k 
+        return novelty
+    
     @staticmethod
     def generate_recommendations(user_preferences):
         recommendations = []
         preferred_clusters = user_preferences
+        ild_threshold = 60.0
+        msi_threshold = 60.0
         
         try:
             course_table = Table('course', db.metadata, autoload_with=db.engine)
@@ -94,27 +131,42 @@ class CourseController(Resource):
                 logger.error("No courses found matching the preferences.")
                 return {"status": "error", "message": "No courses found matching the preferences."}, 404
 
-            cluster_courses = {}
-            for course in courses:
-                cluster_courses.setdefault(course.Cluster, []).append(course.Title)
+            while True:
+                cluster_courses = {}
+                recommendations = []
 
-            for cluster in preferred_clusters:
-                cluster_titles = cluster_courses.get(cluster, [])
-                if cluster_titles:
-                    selected_titles = np.random.choice(cluster_titles, size=min(2, len(cluster_titles)), replace=False)
-                    recommendations.extend(selected_titles.tolist())
+                for course in courses:
+                    cluster_courses.setdefault(course.Cluster, []).append(course.Title)
 
-            all_titles = [course.Title for course in courses]
-            while len(recommendations) < 20:
-                random_title = np.random.choice(all_titles)
-                if random_title not in recommendations:
-                    recommendations.append(random_title)
+                for cluster in cluster_courses.keys():
+                    cluster_titles = cluster_courses[cluster]
+                    if cluster_titles:
+                        selected_titles = np.random.choice(cluster_titles, size=min(3, len(cluster_titles)), replace=False)
+                        recommendations.extend(selected_titles.tolist())
+
+                all_titles = [course.Title for course in courses]
+                while len(recommendations) < 20:
+                    random_title = np.random.choice(all_titles)
+                    if random_title not in recommendations:
+                        recommendations.append(random_title)
+
+                popularity_data = CourseController.generate_popularity(recommendations)
+                skill_vector_data = CourseController.generate_skill_vector(recommendations)
+                
+                ild = CourseController.calculate_ild(skill_vector_data) * 100
+                msi = CourseController.calculate_msi(skill_vector_data, popularity_data) * 100
+
+                if ild >= ild_threshold and msi >= msi_threshold:
+                    print("Recommendations meet thresholds:", "ILD:", ild, "MSI:", msi)
+                    break
+                else:
+                    print("Threshold not met, regenerating:", "ILD:", ild, "MSI:", msi)
+
+            return recommendations, ild, msi
 
         except Exception as ex:
             logger.error(f"Error generating recommendations: {ex}")
             return {"status": "error", "message": f"Error generating recommendations: {ex}"}, 500
-
-        return recommendations
 
     # @staticmethod
     # def insert_courses():
