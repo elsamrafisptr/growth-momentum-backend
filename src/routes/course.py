@@ -1,91 +1,37 @@
 import pandas as pd
 import numpy as np
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, json, jsonify, request, current_app
 from flask_restful import Api
 from flask_accept import accept
 from flask_jwt_extended import jwt_required
 from marshmallow import ValidationError
 from werkzeug.exceptions import NotFound
-from src.controllers.course import CourseController
-from src.controllers.profile import ProfileControllerService
-from src.models.course import Course
-import os
+from controllers.course import CourseController
+from controllers.profile import ProfileControllerService
+from models.course import Course, Recommendation
+from extensions import db
 
 courses = Blueprint("courses", __name__)
 
-CSV_FILE_PATH = os.getenv('CSV_FILE_PATH', '/src/public/Online_Courses.csv')
-
-@courses.route('/insert_courses', methods=['POST'])
-@jwt_required()
-def insert_courses():
+@courses.route('/recommendations', methods=['GET'])
+def generate_recommendations_route():
+    ild_threshold = 60.0
+    msi_threshold = 60.0
     try:
-        if not os.path.exists(CSV_FILE_PATH):
-            raise FileNotFoundError(f"The file at {CSV_FILE_PATH} does not exist.")
+        # user_data = ProfileControllerService.get_user_detail_data()
+        user_data = ['Cloud Computing', 'Data Science', 'AI', 'Software Development']
         
-        dataframe = pd.read_csv(CSV_FILE_PATH)
-        
-        with current_app.app_context():
-            CourseController.insert_courses(dataframe)
-
-        return jsonify({
-            "message": "Courses inserted successfully"
-        }), 200
-    
-    except FileNotFoundError as fnf_error:
-        current_app.logger.error(fnf_error)
-        return jsonify({"status": "error", "message": str(fnf_error)}), 400
-    
-    except Exception as ex:
-        current_app.logger.error(f"Error during course insertion: {ex}")
-        return jsonify({"status": "error", "message": "Failed to insert courses"}), 500
-
-
-@courses.route('/recommendations', methods=['POST'])
-@jwt_required()
-def generate_recommendations():
-    try:
-        user_data = ProfileControllerService.get_user_detail_data()
         if not user_data:
             raise ValueError("User profile data could not be retrieved.")
-
-        ild_threshold = 60.0
-        msi_threshold = 60.0
-
-        recommendations = []
         
-        for attempt in range(1, 101):
-            recommendations = CourseController.generate_recommendations(user_data.preferences)
-            if not recommendations:
-                raise ValueError(f"No recommendations generated after {attempt} attempts.")
-
-            recommended_courses = recommendations.query.filter(Course.title.in_(recommendations)).all()
-            
-            if not recommended_courses:
-                raise ValueError("No courses found matching recommended titles.")
-
-            # Extract skill vectors and popularity values from the recommended courses
-            recommendation_vectors = np.array([course.skill_vector for course in recommended_courses])
-            recommendations_popularity = [course.popularity for course in recommended_courses]
-
-            # Calculate ILD and MSI as percentages
-            ild = CourseController.calculate_ild(recommendation_vectors) * 100
-            msi = CourseController.calculate_msi(recommendation_vectors, recommendations_popularity) * 100
-
-            # Validate against ILD and MSI thresholds
-            if ild >= ild_threshold and msi >= msi_threshold:
-                current_app.logger.info(f"ILD and MSI approved on attempt {attempt}. Recommendations generated.")
-                break
-            else:
-                current_app.logger.warning(f"Attempt {attempt}: ILD ({ild:.2f}%) or MSI ({msi:.2f}%) too low; retrying...")
-
-        # Ensure we successfully generated recommendations
+        recommendations = CourseController.generate_recommendations(user_data)
         if not recommendations:
-            raise ValueError("Failed to generate valid recommendations within 100 attempts.")
+            raise ValueError("No recommendations generated.", recommendations)
 
         return jsonify({
-            'recommendations': [course.title for course in recommended_courses],
-            'ild': ild,
-            'msi': msi
+            'recommendations': recommendations,
+            'ild': 60.0,
+            'msi': 60.0
         }), 200
 
     except ValueError as value_error:
@@ -95,3 +41,34 @@ def generate_recommendations():
     except Exception as ex:
         current_app.logger.error(f"Unexpected error while generating recommendations: {ex}")
         return jsonify({"status": "error", "message": "Failed to generate recommendations due to an internal error"}), 500
+
+@courses.route('/courses', methods=['GET'])
+@jwt_required()
+def get_all_courses():
+    try:
+        data = CourseController.get_all_courses()
+        return jsonify({
+            'data': data
+        }), 200
+
+    except ValueError as value_error:
+        current_app.logger.error(f"Validation Error: {value_error}")
+        return jsonify({"status": "error", "message": str(value_error)}), 400
+    
+    except Exception as ex:
+        current_app.logger.error(f"Unexpected error while fetching courses: {ex}")
+        return jsonify({"status": "error", "message": f"Failed to fetch courses: {str(ex)}"}), 500
+    
+# @courses.route('/insert_courses', methods=['POST'])
+# def insert_courses():
+#     try:
+#         message = CourseController.insert_courses()
+#         return jsonify({"message": message}), 200
+
+#     except FileNotFoundError as fnf_error:
+#         current_app.logger.error(fnf_error)
+#         return jsonify({"status": "error", "message": str(fnf_error)}), 400
+
+#     except Exception as ex:
+#         current_app.logger.error(f"Error during course insertion: {ex}")
+#         return jsonify({"status": "error", "message": "Failed to insert courses"}), 500

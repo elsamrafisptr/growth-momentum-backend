@@ -2,6 +2,7 @@ import uuid
 from flask import json
 from extensions import db
 from datetime import datetime
+from sqlalchemy.dialects.postgresql import ARRAY
 
 class Course(db.Model):
     __tablename__ = 'courses'
@@ -19,8 +20,12 @@ class Course(db.Model):
     level = db.Column(db.String(100), nullable=False, index=True)
     preference = db.Column(db.String(255), nullable=False, index=True)
     
-    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
-    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now(), onupdate=datetime.now())
+    skill_vector = db.Column(ARRAY(db.Integer), nullable=True) 
+    popularity = db.Column(db.Float(), nullable=True, index=True) 
+    cluster = db.Column(db.Integer(), nullable=True, index=True)
+    
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.now)
+    updated_at = db.Column(db.DateTime, nullable=False, default=datetime.now, onupdate=datetime.now)
 
     def __repr__(self):
         return f'<Course {self.title}>'
@@ -40,9 +45,13 @@ class Course(db.Model):
             'duration': self.duration,
             'level': self.level,
             'preference': self.preference,
+            'skill_vector': self.skill_vector,
+            'popularity': self.popularity,
+            'cluster': self.cluster,
             'created_at': self.created_at.isoformat(),
             'updated_at': self.updated_at.isoformat()
         }
+    
 
 class Recommendation(db.Model):
     __tablename__ = 'recommendations'
