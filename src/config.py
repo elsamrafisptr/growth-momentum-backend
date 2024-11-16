@@ -11,7 +11,6 @@ class BaseConfig:
     HOST = os.environ.get('APPLICATION_HOST')
     PORT = os.environ.get('APPLICATION_PORT', '5000')
     TESTING = False
-
     LOGGING_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     LOGGING_LOCATION = 'logs'
     LOGGING_LEVEL = logging.DEBUG

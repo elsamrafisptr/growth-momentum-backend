@@ -11,7 +11,6 @@ users = Blueprint("users", __name__)
 api = Api(users)
 
 @users.route('/users', methods=['GET'])
-# @accept('application/json')
 @jwt_required() 
 def get_all_users():
     try:
@@ -31,7 +30,6 @@ def get_all_users():
         return jsonify({"status": "error", "message": f"Failed to fetch users: {ex}"}), 500
 
 @users.route('/users/<string:user_id>', methods=['GET'])
-# @accept('application/json')
 # @jwt_required()  
 def get_single_user(user_id):
     try:
