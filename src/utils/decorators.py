@@ -16,17 +16,3 @@ def privileges(roles):
             return f(logged_user_id, *args, **kwargs)
         return decorated_function
     return actual_decorator
-
-def authenticate(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        auth_header = request.headers.get('Authorization')
-        if not auth_header:
-            raise UnauthorizedException()
-        auth_token = auth_header.split(" ")[1]
-        user_id = User.decode_auth_token(auth_token)
-        user = User.get(user_id)
-        if not user or not user.active:
-            raise UnauthorizedException(message='Something went wrong. Please contact us.')
-        return f(user_id, *args, **kwargs)
-    return decorated_function

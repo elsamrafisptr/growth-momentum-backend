@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request, jsonify
 from flask_accept import accept
 from flask_jwt_extended import jwt_required
@@ -6,6 +7,7 @@ from marshmallow import ValidationError
 from schemas.profile import ProfileRegisterSchema, ProfileUpdateSchema
 
 profile = Blueprint("profile", __name__)
+logger = logging.getLogger(__name__)
 
 @profile.route('/profile/register', methods=['POST'])
 @accept('application/json')
@@ -17,7 +19,7 @@ def register_detail_user():
         if not user_detail_data:
             return jsonify({"message": "No input data provided"}), 400
         
-        ProfileRegisterSchema.load(user_detail_data)
+        # ProfileRegisterSchema.load(user_detail_data)
 
         result, status = ProfileControllerService.register_detail_user(user_detail_data)
 
@@ -27,6 +29,7 @@ def register_detail_user():
         return jsonify({"errors": err.messages}), 400
 
     except Exception as ex:
+        logger.error(f"Error during registration: {ex}")
         return jsonify({"message": "Internal server error from route"}), 500
 
 @profile.route('/profile/update', methods=['PUT'])

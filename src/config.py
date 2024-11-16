@@ -11,11 +11,6 @@ class BaseConfig:
     HOST = os.environ.get('APPLICATION_HOST')
     PORT = os.environ.get('APPLICATION_PORT', '5000')
     TESTING = False
-
-    # MYSQL_USER = os.environ.get('MYSQL_USER', 'root')
-    # MYSQL_PASSWORD = os.environ.get('MYSQL_PASSWORD', '')
-    # MYSQL_DB = os.environ.get('MYSQL_DB')
-
     LOGGING_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     LOGGING_LOCATION = 'logs'
     LOGGING_LEVEL = logging.DEBUG

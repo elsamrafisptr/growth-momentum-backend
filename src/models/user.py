@@ -1,6 +1,5 @@
 import os
 import uuid
-import json
 from extensions import db, bcrypt
 from enum import Enum
 from datetime import datetime
@@ -46,24 +45,6 @@ class User(db.Model):
     def __repr__(self):
         return f'<User {self.email}>'
 
-
-class JobType(Enum):
-    STUDENT = "Student"
-    WORKER = "Worker"
-    EDUCATOR = "Educator"
-    OTHER = "Other"
-
-class ActivityLevel(Enum):
-    LOW = "Low"
-    MODERATE = "Moderate"
-    HIGH = "High"
-
-
-class Gender(Enum):
-    MALE = "Male"
-    FEMALE = "Female"
-
-
 class Profile(db.Model):
     __tablename__ = 'profiles'
 
@@ -71,11 +52,10 @@ class Profile(db.Model):
     user_id = db.Column(db.String(128), db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, unique=True)
     
     age = db.Column(db.Integer, nullable=False)
-    job_type = db.Column(db.Enum(JobType), nullable=False)
+    job_type = db.Column(db.String(128), nullable=False)
     job_name = db.Column(db.String(255), nullable=False)
-    activity_level = db.Column(db.Enum(ActivityLevel), nullable=False)
-    gender = db.Column(db.Enum(Gender), nullable=False)
-    
+    activity_level = db.Column(db.String(128), nullable=False)
+    gender = db.Column(db.String(128), nullable=False)
     preferences = db.Column(db.Text, nullable=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now())
@@ -86,10 +66,10 @@ class Profile(db.Model):
             'id': self.id,
             'user_id': self.user_id,
             'age': self.age,
-            'job_type': self.job_type.value,
+            'job_type': self.job_type,
             'job_name': self.job_name,
-            'activity_level': self.activity_level.value,
-            'gender': self.gender.value,
+            'activity_level': self.activity_level,
+            'gender': self.gender,
             'preferences': self.preferences
         }
 

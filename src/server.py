@@ -2,8 +2,7 @@ from flask import Flask
 from flasgger import Swagger
 from config import DevelopmentConfig, ProductionConfig
 from extensions import db, migrate, jwt, bcrypt, cors
-from routes import users, auth, profile
-# from models.token import TokenBlacklist
+from routes import users, auth, profile, courses
 
 def create_app(config_class=DevelopmentConfig):
     server =Flask(__name__)
@@ -14,13 +13,7 @@ def create_app(config_class=DevelopmentConfig):
     migrate.init_app(server, db)
     jwt.init_app(server)
     bcrypt.init_app(server)
-    cors.init_app(server)
-
-    # @jwt.token_in_blocklist_loader
-    # def check_if_token_in_blacklist(jwt_header, jwt_payload):
-    #     jti = jwt_payload["jti"]
-    #     token = TokenBlacklist.query.filter_by(jti=jti).first()
-    #     return token is not None
+    cors.init_app(server, supports_credentials=True, origins=["http://localhost:3000"])
 
     server.config['SWAGGER'] = {
         'swagger_version': '2.0',
@@ -43,6 +36,8 @@ def create_app(config_class=DevelopmentConfig):
     server.register_blueprint(users, url_prefix=api_prefix)
     server.register_blueprint(auth, url_prefix=api_prefix)
     server.register_blueprint(profile, url_prefix=api_prefix)
+    server.register_blueprint(courses, url_prefix=api_prefix)
+
     @server.route('/', methods=['GET'])
     def index():
         return 'Hello, Welcome to the Growth Momentum API'
