@@ -1,9 +1,8 @@
 from flask_restful import Resource
 import logging
 import numpy as np
-import pandas as pd
 from sqlalchemy import Table, or_
-from models.course import Course, Recommendation
+from models.course import Course
 from extensions import db
 from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -134,24 +133,32 @@ class CourseController(Resource):
         k = 0 
         pop_len = len(pop)
 
+        if pop_len == 0:
+            return 0.0
+
         for sublist in predicted:
             self_information = 0
             for i in range(len(sublist)):
                 if sublist[i] == 1 and i < pop_len:
-                    self_information += np.sum(-np.log2(pop[i]))
-                    k += 1
+                    if pop[i] > 0:
+                        self_information += np.sum(-np.log2(pop[i]))
+                        k += 1
 
-            mean_self_information.append(self_information / pop_len if pop_len > 0 else 0)
+            mean_self_information.append(self_information / pop_len)
 
-        novelty = sum(mean_self_information) / k 
+        if k > 0:
+            novelty = sum(mean_self_information) / k
+        else:
+            novelty = sum(mean_self_information)
+
         return novelty
     
     @staticmethod
     @jwt_required()
     def generate_recommendations():
         ild_threshold = 60.0
-        msi_threshold = 60.0
-        
+        msi_threshold = 60.0    
+        max_attemps = 10
         try:
             user_id = get_jwt_identity()
 
@@ -159,12 +166,9 @@ class CourseController(Resource):
             query = db.session.query(profiles_table.c.preferences).filter(profiles_table.c.user_id == user_id)
             preferences = query.first()
 
-            # preferred_clusters = [item.strip().strip('"') for item in preferences[0].strip('{}').split(',')]
-            preferred_clusters = ['Algorithms', 'Data Science', 'Language Learning', 'Mobile and Web Development']
-            # preferred_clusters = ['Data Analysis', , 'Probability and Statistics', 'Data Management', 'Probability and Statistics', 'Economics']
-            # preferred_clusters = ["Data Analysis", "Data Science", "Data Management", "Algorithms", "Mobile and Web Development"]
+            preferred_clusters = [item.strip().strip('"') for item in preferences[0].strip('{}').split(',')]
             print(preferred_clusters)
-
+        
             course_table = Table('course', db.metadata, autoload_with=db.engine)
             query = db.session.query(course_table).filter(or_(course_table.c.Category.in_(preferred_clusters),course_table.c["Sub-Category"].in_(preferred_clusters)))
             courses = query.all()
@@ -173,7 +177,9 @@ class CourseController(Resource):
                 logger.error("No courses found matching the preferences.")
                 return {"status": "error", "message": "No courses found matching the preferences."}, 404
 
-            while True:
+            attemps = 0
+
+            while attemps < max_attemps:
                 cluster_courses = {}
                 recommendations = []
 
@@ -194,7 +200,7 @@ class CourseController(Resource):
 
                 popularity_data = CourseController.generate_popularity(recommendations)
                 skill_vector_data = CourseController.generate_skill_vector(recommendations)
-                
+
                 ild = CourseController.calculate_ild(skill_vector_data) * 100
                 msi = CourseController.calculate_msi(skill_vector_data, popularity_data) * 100
 
@@ -203,6 +209,7 @@ class CourseController(Resource):
                     break
                 else:
                     print("Threshold not met, regenerating:", "ILD:", ild, "MSI:", msi)
+                    attemps += 1
 
             recommendations_data = db.session.query(course_table).filter(course_table.c.Title.in_(recommendations))
             return list(set(recommendations_data)), ild, msi
