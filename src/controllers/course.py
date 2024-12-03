@@ -6,6 +6,7 @@ from sqlalchemy import Table, or_
 from models.course import Course, Recommendation
 from extensions import db
 from flask import request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sklearn.metrics.pairwise import cosine_similarity 
 
 logger = logging.getLogger(__name__)
@@ -15,7 +16,8 @@ class CourseController(Resource):
     def get_all_courses():
         try:
             page = request.args.get('page', 1, type=int)
-            limit = request.args.get('limit', 20, type=int)
+            limit = request.args.get('limit', 10, type=int)
+            search = request.args.get('search', )
 
             course_table = Table('course', db.metadata, autoload_with=db.engine)
             
@@ -145,13 +147,24 @@ class CourseController(Resource):
         return novelty
     
     @staticmethod
-    def generate_recommendations(user_preferences):
-        recommendations = []
-        preferred_clusters = user_preferences
+    @jwt_required()
+    def generate_recommendations():
         ild_threshold = 60.0
         msi_threshold = 60.0
         
         try:
+            user_id = get_jwt_identity()
+
+            profiles_table = Table('profiles', db.metadata, autoload_with=db.engine)
+            query = db.session.query(profiles_table.c.preferences).filter(profiles_table.c.user_id == user_id)
+            preferences = query.first()
+
+            # preferred_clusters = [item.strip().strip('"') for item in preferences[0].strip('{}').split(',')]
+            preferred_clusters = ['Algorithms', 'Data Science', 'Language Learning', 'Mobile and Web Development']
+            # preferred_clusters = ['Data Analysis', , 'Probability and Statistics', 'Data Management', 'Probability and Statistics', 'Economics']
+            # preferred_clusters = ["Data Analysis", "Data Science", "Data Management", "Algorithms", "Mobile and Web Development"]
+            print(preferred_clusters)
+
             course_table = Table('course', db.metadata, autoload_with=db.engine)
             query = db.session.query(course_table).filter(or_(course_table.c.Category.in_(preferred_clusters),course_table.c["Sub-Category"].in_(preferred_clusters)))
             courses = query.all()

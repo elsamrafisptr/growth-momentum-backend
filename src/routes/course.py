@@ -11,12 +11,9 @@ courses = Blueprint("courses", __name__)
 @courses.route('/recommendations', methods=['GET'])
 def generate_recommendations_route():
     try:
-        user_data = ['Cloud Computing', 'Data Science', 'AI', 'Software Development']
+        # user_data = ['Algorithms', 'Data Science', 'Language Learning', 'Mobile and Web Development']
         
-        if not user_data:
-            raise ValueError("User profile data could not be retrieved.")
-        
-        recommendations, ild, msi = CourseController.generate_recommendations(user_data)
+        recommendations, ild, msi = CourseController.generate_recommendations()
         
         if not recommendations:
             raise ValueError("No recommendations generated.")
