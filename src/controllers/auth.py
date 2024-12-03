@@ -13,6 +13,7 @@ from models.user import User, UserRole
 from datetime import timedelta
 from flask import make_response
 
+
 logger = logging.getLogger(__name__)
 
 class AuthControllerService:

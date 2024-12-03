@@ -56,7 +56,6 @@ class Profile(db.Model):
     job_name = db.Column(db.String(255), nullable=False)
     activity_level = db.Column(db.String(128), nullable=False)
     gender = db.Column(db.String(128), nullable=False)
-    
     preferences = db.Column(db.Text, nullable=True)
 
     created_at = db.Column(db.DateTime, nullable=False, default=datetime.now())

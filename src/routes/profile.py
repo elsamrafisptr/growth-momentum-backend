@@ -1,4 +1,3 @@
-
 import logging
 from flask import Blueprint, request, jsonify
 from flask_accept import accept
@@ -9,6 +8,7 @@ from schemas.profile import ProfileRegisterSchema, ProfileUpdateSchema
 
 profile = Blueprint("profile", __name__)
 logger = logging.getLogger(__name__)
+
 @profile.route('/profile/register', methods=['POST'])
 @accept('application/json')
 @jwt_required()  

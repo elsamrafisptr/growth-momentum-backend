@@ -33,6 +33,7 @@ def login():
         UserLoginSchema().load(user_data)
 
         result, status = AuthControllerService.login(user_data)
+        
         return result, status
 
     except ValidationError as err:
