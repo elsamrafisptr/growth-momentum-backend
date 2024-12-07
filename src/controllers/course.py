@@ -1,12 +1,15 @@
-from flask_restful import Resource
+import os
 import logging
 import numpy as np
 import pandas as pd
 from sqlalchemy import Table, or_
-from models.course import Course, Recommendation
+from flask_restful import Resource
+from models.course import Course
 from extensions import db
 from flask import request
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sklearn.metrics.pairwise import cosine_similarity 
+
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +18,8 @@ class CourseController(Resource):
     def get_all_courses():
         try:
             page = request.args.get('page', 1, type=int)
-            limit = request.args.get('limit', 20, type=int)
+            limit = request.args.get('limit', 10, type=int)
+            search = request.args.get('search', )
 
             course_table = Table('course', db.metadata, autoload_with=db.engine)
             
@@ -132,26 +136,42 @@ class CourseController(Resource):
         k = 0 
         pop_len = len(pop)
 
+        if pop_len == 0:
+            return 0.0
+
         for sublist in predicted:
             self_information = 0
             for i in range(len(sublist)):
                 if sublist[i] == 1 and i < pop_len:
-                    self_information += np.sum(-np.log2(pop[i]))
-                    k += 1
+                    if pop[i] > 0:
+                        self_information += np.sum(-np.log2(pop[i]))
+                        k += 1
 
-            mean_self_information.append(self_information / pop_len if pop_len > 0 else 0)
+            mean_self_information.append(self_information / pop_len)
 
-        novelty = sum(mean_self_information) / k 
+        if k > 0:
+            novelty = sum(mean_self_information) / k
+        else:
+            novelty = sum(mean_self_information)
+
         return novelty
     
     @staticmethod
-    def generate_recommendations(user_preferences):
-        recommendations = []
-        preferred_clusters = user_preferences
+    @jwt_required()
+    def generate_recommendations():
         ild_threshold = 60.0
-        msi_threshold = 60.0
-        
+        msi_threshold = 60.0    
+        max_attemps = 10
         try:
+            user_id = get_jwt_identity()
+
+            profiles_table = Table('profiles', db.metadata, autoload_with=db.engine)
+            query = db.session.query(profiles_table.c.preferences).filter(profiles_table.c.user_id == user_id)
+            preferences = query.first()
+
+            preferred_clusters = [item.strip().strip('"') for item in preferences[0].strip('{}').split(',')]
+            print(preferred_clusters)
+        
             course_table = Table('course', db.metadata, autoload_with=db.engine)
             query = db.session.query(course_table).filter(or_(course_table.c.Category.in_(preferred_clusters),course_table.c["Sub-Category"].in_(preferred_clusters)))
             courses = query.all()
@@ -160,7 +180,9 @@ class CourseController(Resource):
                 logger.error("No courses found matching the preferences.")
                 return {"status": "error", "message": "No courses found matching the preferences."}, 404
 
-            while True:
+            attemps = 0
+
+            while attemps < max_attemps:
                 cluster_courses = {}
                 recommendations = []
 
@@ -181,7 +203,7 @@ class CourseController(Resource):
 
                 popularity_data = CourseController.generate_popularity(recommendations)
                 skill_vector_data = CourseController.generate_skill_vector(recommendations)
-                
+
                 ild = CourseController.calculate_ild(skill_vector_data) * 100
                 msi = CourseController.calculate_msi(skill_vector_data, popularity_data) * 100
 
@@ -190,6 +212,7 @@ class CourseController(Resource):
                     break
                 else:
                     print("Threshold not met, regenerating:", "ILD:", ild, "MSI:", msi)
+                    attemps += 1
 
             recommendations_data = db.session.query(course_table).filter(course_table.c.Title.in_(recommendations))
             return list(set(recommendations_data)), ild, msi
@@ -198,88 +221,47 @@ class CourseController(Resource):
             logger.error(f"Error generating recommendations: {ex}")
             return {"status": "error", "message": f"Error generating recommendations: {ex}"}, 500
 
-    # @staticmethod
-    # def insert_courses():
-    #     try:
-    #         # Load the CSV file path from environment variables
-    #         CSV_FILE_PATH = os.environ.get('CSV_FILE_PATH', 'D:\Ecammm\Pendidikan\Tugas Akhir\growth-momentum-backend\src\public\Online_Courses_Cluster_Data.csv')
+    @staticmethod
+    def insert_courses():
+        try:
+            CSV_FILE_PATH = os.environ.get('CSV_FILE_PATH', 'D:\Ecammm\Pendidikan\Tugas Akhir\growth-momentum-backend\src\public\Online_Courses_Cluster_Data.csv')
 
-    #         # Check if the file exists
-    #         if not os.path.exists(CSV_FILE_PATH):
-    #             raise FileNotFoundError(f"The file at {CSV_FILE_PATH} does not exist.")
+            if not os.path.exists(CSV_FILE_PATH):
+                raise FileNotFoundError(f"The file at {CSV_FILE_PATH} does not exist.")
 
-    #         # Load data into DataFrame
-    #         dataframe = pd.read_csv(CSV_FILE_PATH)
+            dataframe = pd.read_csv(CSV_FILE_PATH)
             
-    #         # Prepare course objects for bulk insert
-    #         courses = [
-    #             Course(
-    #                 title=row['Title'], 
-    #                 short_intro=row['Short Intro'], 
-    #                 url=row['URL'],
-    #                 category=row['Category'], 
-    #                 sub_category=row['Sub-Category'], 
-    #                 skills=row['Skills'],
-    #                 rating=row['Rating'], 
-    #                 number_of_viewers=row['Number of viewers'],
-    #                 duration=row['Duration'],
-    #                 level=row['Level'],
-    #                 preference=row['preference'], 
-    #                 popularity=row['popularity'],
-    #                 skill_vector=row['skill_vector'], 
-    #                 cluster=row['Cluster']
-    #             )
-    #             for _, row in dataframe.iterrows()
-    #         ]
+            courses = [
+                Course(
+                    title=row['Title'], 
+                    short_intro=row['Short Intro'], 
+                    url=row['URL'],
+                    category=row['Category'], 
+                    sub_category=row['Sub-Category'], 
+                    skills=row['Skills'],
+                    rating=row['Rating'], 
+                    number_of_viewers=row['Number of viewers'],
+                    duration=row['Duration'],
+                    level=row['Level'],
+                    preference=row['preference'], 
+                    popularity=row['popularity'],
+                    skill_vector=row['skill_vector'], 
+                    cluster=row['Cluster']
+                )
+                for _, row in dataframe.iterrows()
+            ]
 
-    #         # Bulk insert courses into the database
-    #         db.session.bulk_save_objects(courses)
-    #         db.session.commit()
+            db.session.bulk_save_objects(courses)
+            db.session.commit()
             
-    #         # Log the successful insertion
-    #         logger.info(f"Successfully inserted {len(courses)} courses.")
-    #         return f"Successfully inserted {len(courses)} courses."
+            logger.info(f"Successfully inserted {len(courses)} courses.")
+            return f"Successfully inserted {len(courses)} courses."
         
-    #     except FileNotFoundError as fnf_error:
-    #         logger.error(fnf_error)
-    #         raise fnf_error
+        except FileNotFoundError as fnf_error:
+            logger.error(fnf_error)
+            raise fnf_error
         
-    #     except Exception as ex:
-    #         db.session.rollback()
-    #         logger.error(f"Error inserting courses: {ex}")
-    #         raise Exception(f"Error inserting courses: {ex}")
-
-    # @staticmethod
-    # def insert_courses():
-    #     """
-    #     Inserts courses from a CSV file into the PostgreSQL database.
-    #     """
-    #     try:
-    #         # Load the CSV file path from environment variables
-    #         CSV_FILE_PATH = os.environ.get('CSV_FILE_PATH', '/src/public/Online_Courses_Cluster_Data.csv')
-
-    #         # Check if the file exists
-    #         if not os.path.exists(CSV_FILE_PATH):
-    #             raise FileNotFoundError(f"The file at {CSV_FILE_PATH} does not exist.")
-
-    #         # Load data into DataFrame
-    #         dataframe = pd.read_csv(CSV_FILE_PATH)
-
-    #         # Insert DataFrame directly into PostgreSQL database
-    #         dataframe.to_sql('course', con=db.engine, index=False, if_exists='append')
-
-    #         # Log and return success message
-    #         logger.info(f"Successfully inserted {len(dataframe)} courses.")
-    #         return f"Successfully inserted {len(dataframe)} courses."
-        
-    #     except FileNotFoundError as fnf_error:
-    #         logger.error(fnf_error)
-    #         raise fnf_error
-        
-    #     except SQLAlchemyError as sql_error:
-    #         logger.error(f"SQLAlchemy error: {sql_error}")
-    #         raise Exception(f"Database error: {sql_error}")
-
-    #     except Exception as ex:
-    #         logger.error(f"Error inserting courses: {ex}")
-    #         raise Exception(f"Error inserting courses: {ex}")
+        except Exception as ex:
+            db.session.rollback()
+            logger.error(f"Error inserting courses: {ex}")
+            raise Exception(f"Error inserting courses: {ex}")
