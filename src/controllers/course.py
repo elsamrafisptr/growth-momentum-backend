@@ -7,6 +7,8 @@ from extensions import db
 from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sklearn.metrics.pairwise import cosine_similarity 
+import os
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -218,88 +220,47 @@ class CourseController(Resource):
             logger.error(f"Error generating recommendations: {ex}")
             return {"status": "error", "message": f"Error generating recommendations: {ex}"}, 500
 
-    # @staticmethod
-    # def insert_courses():
-    #     try:
-    #         # Load the CSV file path from environment variables
-    #         CSV_FILE_PATH = os.environ.get('CSV_FILE_PATH', 'D:\Ecammm\Pendidikan\Tugas Akhir\growth-momentum-backend\src\public\Online_Courses_Cluster_Data.csv')
+    @staticmethod
+    def insert_courses():
+        try:
+            CSV_FILE_PATH = os.environ.get('CSV_FILE_PATH', 'D:\Ecammm\Pendidikan\Tugas Akhir\growth-momentum-backend\src\public\Online_Courses_Cluster_Data.csv')
 
-    #         # Check if the file exists
-    #         if not os.path.exists(CSV_FILE_PATH):
-    #             raise FileNotFoundError(f"The file at {CSV_FILE_PATH} does not exist.")
+            if not os.path.exists(CSV_FILE_PATH):
+                raise FileNotFoundError(f"The file at {CSV_FILE_PATH} does not exist.")
 
-    #         # Load data into DataFrame
-    #         dataframe = pd.read_csv(CSV_FILE_PATH)
+            dataframe = pd.read_csv(CSV_FILE_PATH)
             
-    #         # Prepare course objects for bulk insert
-    #         courses = [
-    #             Course(
-    #                 title=row['Title'], 
-    #                 short_intro=row['Short Intro'], 
-    #                 url=row['URL'],
-    #                 category=row['Category'], 
-    #                 sub_category=row['Sub-Category'], 
-    #                 skills=row['Skills'],
-    #                 rating=row['Rating'], 
-    #                 number_of_viewers=row['Number of viewers'],
-    #                 duration=row['Duration'],
-    #                 level=row['Level'],
-    #                 preference=row['preference'], 
-    #                 popularity=row['popularity'],
-    #                 skill_vector=row['skill_vector'], 
-    #                 cluster=row['Cluster']
-    #             )
-    #             for _, row in dataframe.iterrows()
-    #         ]
+            courses = [
+                Course(
+                    title=row['Title'], 
+                    short_intro=row['Short Intro'], 
+                    url=row['URL'],
+                    category=row['Category'], 
+                    sub_category=row['Sub-Category'], 
+                    skills=row['Skills'],
+                    rating=row['Rating'], 
+                    number_of_viewers=row['Number of viewers'],
+                    duration=row['Duration'],
+                    level=row['Level'],
+                    preference=row['preference'], 
+                    popularity=row['popularity'],
+                    skill_vector=row['skill_vector'], 
+                    cluster=row['Cluster']
+                )
+                for _, row in dataframe.iterrows()
+            ]
 
-    #         # Bulk insert courses into the database
-    #         db.session.bulk_save_objects(courses)
-    #         db.session.commit()
+            db.session.bulk_save_objects(courses)
+            db.session.commit()
             
-    #         # Log the successful insertion
-    #         logger.info(f"Successfully inserted {len(courses)} courses.")
-    #         return f"Successfully inserted {len(courses)} courses."
+            logger.info(f"Successfully inserted {len(courses)} courses.")
+            return f"Successfully inserted {len(courses)} courses."
         
-    #     except FileNotFoundError as fnf_error:
-    #         logger.error(fnf_error)
-    #         raise fnf_error
+        except FileNotFoundError as fnf_error:
+            logger.error(fnf_error)
+            raise fnf_error
         
-    #     except Exception as ex:
-    #         db.session.rollback()
-    #         logger.error(f"Error inserting courses: {ex}")
-    #         raise Exception(f"Error inserting courses: {ex}")
-
-    # @staticmethod
-    # def insert_courses():
-    #     """
-    #     Inserts courses from a CSV file into the PostgreSQL database.
-    #     """
-    #     try:
-    #         # Load the CSV file path from environment variables
-    #         CSV_FILE_PATH = os.environ.get('CSV_FILE_PATH', '/src/public/Online_Courses_Cluster_Data.csv')
-
-    #         # Check if the file exists
-    #         if not os.path.exists(CSV_FILE_PATH):
-    #             raise FileNotFoundError(f"The file at {CSV_FILE_PATH} does not exist.")
-
-    #         # Load data into DataFrame
-    #         dataframe = pd.read_csv(CSV_FILE_PATH)
-
-    #         # Insert DataFrame directly into PostgreSQL database
-    #         dataframe.to_sql('course', con=db.engine, index=False, if_exists='append')
-
-    #         # Log and return success message
-    #         logger.info(f"Successfully inserted {len(dataframe)} courses.")
-    #         return f"Successfully inserted {len(dataframe)} courses."
-        
-    #     except FileNotFoundError as fnf_error:
-    #         logger.error(fnf_error)
-    #         raise fnf_error
-        
-    #     except SQLAlchemyError as sql_error:
-    #         logger.error(f"SQLAlchemy error: {sql_error}")
-    #         raise Exception(f"Database error: {sql_error}")
-
-    #     except Exception as ex:
-    #         logger.error(f"Error inserting courses: {ex}")
-    #         raise Exception(f"Error inserting courses: {ex}")
+        except Exception as ex:
+            db.session.rollback()
+            logger.error(f"Error inserting courses: {ex}")
+            raise Exception(f"Error inserting courses: {ex}")

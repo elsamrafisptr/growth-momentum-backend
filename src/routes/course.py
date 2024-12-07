@@ -1,17 +1,12 @@
 from flask import Blueprint, jsonify, current_app
-from flask_restful import Api
-from flask_accept import accept
-from flask_jwt_extended import jwt_required
 from controllers.course import CourseController
-from controllers.profile import ProfileControllerService
-from models.course import Course, Recommendation
 
 courses = Blueprint("courses", __name__)
 
 @courses.route('/recommendations', methods=['GET'])
 def generate_recommendations_route():
     try:
-        # user_data = ['Algorithms', 'Data Science', 'Language Learning', 'Mobile and Web Development']
+        # user_data_example = ['Algorithms', 'Data Science', 'Language Learning', 'Mobile and Web Development']
         
         recommendations, ild, msi = CourseController.generate_recommendations()
         
@@ -79,16 +74,16 @@ def get_all_preferences():
         return jsonify({"status": "error", "message": f"Failed to fetch courses: {str(ex)}"}), 500
 
 
-# @courses.route('/insert_courses', methods=['POST'])
-# def insert_courses():
-#     try:
-#         message = CourseController.insert_courses()
-#         return jsonify({"message": message}), 200
+@courses.route('/insert_courses', methods=['POST'])
+def insert_courses():
+    try:
+        message = CourseController.insert_courses()
+        return jsonify({"message": message}), 200
 
-#     except FileNotFoundError as fnf_error:
-#         current_app.logger.error(fnf_error)
-#         return jsonify({"status": "error", "message": str(fnf_error)}), 400
+    except FileNotFoundError as fnf_error:
+        current_app.logger.error(fnf_error)
+        return jsonify({"status": "error", "message": str(fnf_error)}), 400
 
-#     except Exception as ex:
-#         current_app.logger.error(f"Error during course insertion: {ex}")
-#         return jsonify({"status": "error", "message": "Failed to insert courses"}), 500
+    except Exception as ex:
+        current_app.logger.error(f"Error during course insertion: {ex}")
+        return jsonify({"status": "error", "message": "Failed to insert courses"}), 500
