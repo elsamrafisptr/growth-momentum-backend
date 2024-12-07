@@ -224,7 +224,10 @@ class CourseController(Resource):
     @staticmethod
     def insert_courses():
         try:
-            CSV_FILE_PATH = os.environ.get('CSV_FILE_PATH', 'D:\Ecammm\Pendidikan\Tugas Akhir\growth-momentum-backend\src\public\Online_Courses_Cluster_Data.csv')
+            CSV_FILE_PATH = os.environ.get(
+                'CSV_FILE_PATH',
+                os.path.join(os.getcwd(), 'src', 'public', 'Online_Courses_Cluster_Data.csv')
+            )
 
             if not os.path.exists(CSV_FILE_PATH):
                 raise FileNotFoundError(f"The file at {CSV_FILE_PATH} does not exist.")
