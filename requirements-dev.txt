@@ -1,9 +1,8 @@
--r requirements.txt
-black
-flake8
-isort
-pip-upgrader
-pytest-cov
-pytest-sugar
-pytest
-safety
+black==23.9.1
+flake8==6.1.0
+isort==5.13.1
+pip-upgrader==1.0.3
+pytest-cov==4.1.0
+pytest-sugar==0.9.7
+pytest==7.4.2
+safety==2.3.3
