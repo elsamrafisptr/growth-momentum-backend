@@ -90,7 +90,6 @@ class AuthControllerService:
         return access_token, refresh_token
 
     @staticmethod
-    @jwt_required(refresh=True)
     def refresh_token():
         try:
             user_id = get_jwt_identity()
@@ -116,7 +115,6 @@ class AuthControllerService:
             return {"message": "Internal server error"}, 500
 
     @staticmethod
-    @jwt_required()
     def logout():
         try:
             jti = get_jwt()['jti']
