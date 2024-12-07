@@ -73,7 +73,6 @@ def get_all_preferences():
         current_app.logger.error(f"Unexpected error while fetching courses: {ex}")
         return jsonify({"status": "error", "message": f"Failed to fetch courses: {str(ex)}"}), 500
 
-
 @courses.route('/insert_courses', methods=['POST'])
 def insert_courses():
     try:

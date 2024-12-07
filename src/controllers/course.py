@@ -1,14 +1,15 @@
-from flask_restful import Resource
+import os
 import logging
 import numpy as np
+import pandas as pd
 from sqlalchemy import Table, or_
+from flask_restful import Resource
 from models.course import Course
 from extensions import db
 from flask import request
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sklearn.metrics.pairwise import cosine_similarity 
-import os
-import pandas as pd
+
 
 logger = logging.getLogger(__name__)
 
