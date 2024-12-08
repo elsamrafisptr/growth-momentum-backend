@@ -60,14 +60,14 @@ class AuthControllerService:
 
             response.set_cookie(
                 "access_token", access_token,
-                httponly=True, secure=True, samesite="None",
-                max_age=60*120
+                httponly=True, samesite="None",
+                max_age=60*120, path="/"
             )
 
             response.set_cookie(
                 "refresh_token", refresh_token,
-                httponly=True, secure=True, samesite="None",
-                max_age=60*60*24*7
+                httponly=True, samesite="None",
+                max_age=60*60*24*7, path="/"
             )
 
             logger.info(f"User {user.email} logged in successfully.")
