@@ -13,7 +13,7 @@ def create_app(config_class=DevelopmentConfig):
     migrate.init_app(server, db)
     jwt.init_app(server)
     bcrypt.init_app(server)
-    cors.init_app(server, supports_credentials=True, origins=["http://localhost:3000"])
+    cors.init_app(server, supports_credentials=True, origins=["*"])
 
     server.config['SWAGGER'] = {
         'swagger_version': '2.0',
