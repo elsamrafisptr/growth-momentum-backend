@@ -60,13 +60,13 @@ class AuthControllerService:
 
             response.set_cookie(
                 "access_token", access_token,
-                httponly=True, samesite="None",
+                httponly=True, secure=True, samesite="None",
                 max_age=60*120, path="/"
             )
 
             response.set_cookie(
                 "refresh_token", refresh_token,
-                httponly=True, samesite="None",
+                httponly=True, secure=True, samesite="None",
                 max_age=60*60*24*7, path="/"
             )
 
